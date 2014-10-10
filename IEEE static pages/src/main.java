@@ -46,7 +46,7 @@ public class main {
 		BufferedReader blacklistFile = null;
 		ArrayList<String> blacklistUrls = null;
 		
-		PrintWriter errorLog, blacklistLog, omitElementsLog, formLog, attentionLog;
+		PrintWriter errorLog, omitElementsLog, formLog, attentionLog;
 		String currentUrl = null;
 		
 		String xmlTF = "<?xml version=\"1.0\"?><root available-locales=\"en_US\" default-locale=\"en_US\"><dynamic-element dataType=\"boolean\" indexType=\"keyword\" name=\"sideNav\" readOnly=\"false\" repeatable=\"false\" required=\"false\" showLabel=\"true\" type=\"checkbox\" width=\"\"><dynamic-content language-id=\"en_US\"><![CDATA[";
@@ -58,7 +58,6 @@ public class main {
 		String xmlClose = "]]></dynamic-content></dynamic-element></root>";
 		
 		errorLog = null;
-		blacklistLog = null;
 		omitElementsLog = null;
 		formLog = null;
 		attentionLog = null;
@@ -92,7 +91,7 @@ public class main {
 			
 			
 			CleanerProperties props = new CleanerProperties();
-			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, contentNode, textContentNode, relatedLinksNode, searchBoxNode, searchContentNode;
+			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
 			TagNode bodyContentNode;
 			String bodyContentStr, relatedLinksStr, addInfoStr, subnavStr, bannerHeaderStr, bannerTextStr, masterPageStr;
 			
@@ -101,12 +100,9 @@ public class main {
 			addInfoNode = null;
 			sideBoxNode = null;
 			sideBoxSectionsNode = null;
-			contentNode = null;
 			textContentNode = null;
 			relatedLinksNode = null;
-			searchBoxNode = null;
 			bodyContentNode = null;
-			searchContentNode = null;
 			
 			bodyContentStr = "";
 			relatedLinksStr = "";
