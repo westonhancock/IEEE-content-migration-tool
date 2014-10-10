@@ -304,7 +304,7 @@ public class main {
 					
 				}
 				
-				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee-test/" + , true));
+				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee-test/", true));
 				tempWriter.println("<?xml version=\"1.0\"?>");
 				tempWriter.println("");
 				
