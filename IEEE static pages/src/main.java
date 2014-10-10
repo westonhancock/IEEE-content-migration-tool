@@ -102,8 +102,13 @@ public class main {
 		props.setIgnoreQuestAndExclam(false);
 		props.setOmitXmlDeclaration(true);
 		
+		int index = 0;
+		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
+			++index;
+			System.out.println(index);
+			
 			TagNode root;
 			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
 			TagNode bodyContentNode;
@@ -147,9 +152,12 @@ public class main {
 				filenameSplitArray = Arrays.copyOfRange(filenameSplitArray, 0, filenameSplitArray.length - 1);
 				filenameSplitArray[filenameSplitArray.length - 1] += ".xml";
 			}
-			else
-			{	
-				filenameSplitArray[filenameSplitArray.length - 1] = filenameSplitArray[filenameSplitArray.length - 1].replaceAll(".html", ".xml");
+			
+			filenameSplitArray[filenameSplitArray.length - 1] = filenameSplitArray[filenameSplitArray.length - 1].replaceAll(".html", ".xml");
+			
+			if (( ! filenameSplitArray[filenameSplitArray.length -1].contains(".html")) && ( ! filenameSplitArray[filenameSplitArray.length -1].contains(".xml")))
+			{
+				filenameSplitArray[filenameSplitArray.length -1] += ".xml";
 			}
 			
 			for (int i = 0; i < filenameSplitArray.length; ++i)
@@ -157,14 +165,14 @@ public class main {
 				// not at end of list
 				if (i < filenameSplitArray.length - 1)
 				{
-					outputFileName += ((filenameSplitArray[i]) + " - "); // this dash is a special dash. only this dash works in filenames. copy and paste if using it (don't type it in).
+					outputFileName += ((filenameSplitArray[i]) + "-"); // this dash is a special dash. only this dash works in filenames. copy and paste if using it (don't type it in).
 				}
 				else // at end of list
 				{
 					outputFileName += filenameSplitArray[i];
 				}
 			}
-			
+
 			// check if file already exists, in which case it's most likely due to index.html page existing as a duplicate
 			if (outputtedUrls.contains(outputFileName))
 			{
