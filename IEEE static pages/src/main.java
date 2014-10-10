@@ -183,7 +183,12 @@ public class main {
 						omitElementsLog.println(currentUrl + " - " + sideBoxSectionsStr);
 					}
 				}
-				sideBoxNode = sideBoxSectionsNode.getParent();
+			}
+			
+			Object[] sideBoxList = root.evaluateXPath("//div[@class='side-box']");
+			if (sideBoxList.length > 0)
+			{
+				sideBoxNode = (TagNode)sideBoxList[0]; 
 				sideBoxNode.getParent().removeChild(sideBoxNode);
 			}
 			
