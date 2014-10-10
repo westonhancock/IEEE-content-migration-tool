@@ -61,11 +61,11 @@ public class main {
 		omitElementsLog = null;
 		formLog = null;
 		attentionLog = null;
-		
+
 		try
 		{
 			// open master url list file
-			masterUrlFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/test.txt"));
+			masterUrlFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/masterUrlList.txt"));
 			// open blacklist list file
 			blacklistFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/blacklist.txt"));
 			
@@ -86,9 +86,11 @@ public class main {
 		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/omitElementsLogUrl.txt", true));
 		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/formLogUrl.txt", true));
 		
+		int urlIndex = 0;
+		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
-			
+			++urlIndex;
 			
 			CleanerProperties props = new CleanerProperties();
 			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
@@ -189,7 +191,7 @@ public class main {
 			if (sideBoxList.length > 0)
 			{
 				sideBoxNode = (TagNode)sideBoxList[0]; 
-				sideBoxNode.getParent().removeChild(sideBoxNode);
+			    sideBoxNode.getParent().removeChild(sideBoxNode);
 			}
 			
 			Object[] textContentList = root.evaluateXPath("//div[@id='text-content']");
@@ -287,18 +289,26 @@ public class main {
 				// do parsing
 				TagNode rootNodeUnformatted = new HtmlCleaner(props).clean(masterPageStr);
 				
-				
 				// serialize to xml file
 				new PrettyXmlSerializer(props).writeToFile(
-				    rootNodeUnformatted, "C:/Users/Liferay/Desktop/masterPageFormatted.xml", "utf-8"
+				    rootNodeUnformatted, "C:/Users/Liferay/Desktop/masterPageCleaned.xml", "utf-8"
 				);
 				
-				BufferedReader tempReader = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/masterPageFormatted.xml"));
-				String tempString = null;
+				BufferedReader tempReader = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/masterPageCleaned.xml"));
 				
-				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/masterPage.xml", true));
+				String strDelimiter = "/";
+				String[] filenameSplitArray = currentUrl.split(strDelimiter);
+				
+				if (filenameSplitArray[filenameSplitArray.length - 1].equals("index.html"))
+				{
+					
+				}
+				
+				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee-test/" + , true));
 				tempWriter.println("<?xml version=\"1.0\"?>");
 				tempWriter.println("");
+				
+				String tempString = null;
 				
 				// skip all lines until keyword "root" appears to avoid tags like "<html>" and "<body>"
 				while ((tempString = tempReader.readLine()) != null)
@@ -327,9 +337,8 @@ public class main {
 				
 				tempReader.close();
 				tempWriter.close();
+				Files.delete(Paths.get("C:/Users/Liferay/Desktop/masterPageCleaned.xml"));
 			}
-			
-			break;
 		}
 		/*
 		errorLog.close();
