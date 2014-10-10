@@ -28,18 +28,24 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
 import org.w3c.dom.xpath.XPathExpression;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.PrettyXmlSerializer;
 import org.htmlcleaner.TagNode;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 public class main {
 
 	public static void main(String[] args) throws Exception {
 		
-		BufferedReader masterUrlFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/test.txt"));
+		BufferedReader masterUrlFile = null;
+		BufferedReader blacklistFile = null;
+		ArrayList<String> blacklistUrls = null;
+		
 		PrintWriter errorLog, blacklistLog, omitElementsLog, formLog, attentionLog;
 		String currentUrl = null;
 		
@@ -55,15 +61,36 @@ public class main {
 		blacklistLog = null;
 		omitElementsLog = null;
 		formLog = null;
+		attentionLog = null;
+		
+		try
+		{
+			// open master url list file
+			masterUrlFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/test.txt"));
+			// open blacklist list file
+			blacklistFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/blacklist.txt"));
+			
+			String tempString = null;
+			
+			while ((tempString = blacklistFile.readLine()) != null)
+			{
+				blacklistUrls.add(tempString);
+			}
+		}
+		catch (Exception e)
+		{
+			System.out.println(e.getMessage());
+			System.exit(1);
+		}
 		
 		errorLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/errorLogUrl.txt", true));
-		// blacklistLog = new PrintWriter(new FileWriter("blacklistLogUrl", true));
 		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/omitElementsLogUrl.txt", true));
 		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/formLogUrl.txt", true));
-		// attentionLog....
 		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
+			
+			
 			CleanerProperties props = new CleanerProperties();
 			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, contentNode, textContentNode, relatedLinksNode, searchBoxNode, searchContentNode;
 			TagNode bodyContentNode;
@@ -90,8 +117,9 @@ public class main {
 			masterPageStr = "";
 			
 			// set some properties to non-default values
+			props.setAdvancedXmlEscape(true);
 			props.setTransResCharsToNCR(true);
-			props.setRecognizeUnicodeChars(true);
+			props.setRecognizeUnicodeChars(false);
 			props.setIgnoreQuestAndExclam(false);
 			props.setOmitXmlDeclaration(true);
 	
@@ -132,7 +160,7 @@ public class main {
 			{
 				subnavStr = "false";
 			}
-						
+			
 			Object[] alignList = root.evaluateXPath("//div[@class='alignleft']");
 			if (alignList.length > 0)
 			{
@@ -168,45 +196,12 @@ public class main {
 			{
 				searchBoxNode = (TagNode)searchBoxList[0];
 			}
-
-			/*Object[] searchContentList = root.evaluateXPath("//div[@id='content-type-search-result-content']");
-			if (searchContentList.length > 0)
-			{
-				searchContentNode = (TagNode)searchContentList[0];
-				// will be blacklisted
-			}*/
 			
 			Object[] textContentList = root.evaluateXPath("//div[@id='text-content']");
 			if (textContentList.length > 0)
 			{
 				textContentNode = (TagNode)textContentList[0];
 			}
-			
-			
-			// find inline icon images and replace src url
-			/*
-			Object[] linkImgList = root.getElementsByAttValue("src", "/images/external-link.gif", true, false);
-			if (linkImgList.length > 0)
-			{
-				TagNode linkImgNode = (TagNode)linkImgList[0];
-				linkImgNode.removeAttribute("src");
-				linkImgNode.addAttribute("src", "[$FILE=external-link.gif$]");
-			}
-			Object[] protectedLinkImgList = root.getElementsByAttValue("src", "/images/external-link-protected.gif", true, false);
-			if (protectedLinkImgList.length > 0)
-			{
-				TagNode protectedLinkImgNode = (TagNode)protectedLinkImgList[0];
-				protectedLinkImgNode.removeAttribute("src");
-				protectedLinkImgNode.addAttribute("src", "[$FILE=external-link-protected.gif$]");
-			}
-			Object[] pdfImgList = root.getElementsByAttValue("src", "/images/pdficon.gif", true, false);
-			if (pdfImgList.length > 0)
-			{
-				TagNode pdfImgNode = (TagNode)pdfImgList[0];
-				pdfImgNode.removeAttribute("src");
-				pdfImgNode.addAttribute("src", "[$FILE=pdficon.gif$]");
-			}
-			*/
 			
 			if (alignNode != null)
 			{
@@ -228,11 +223,11 @@ public class main {
 				else
 				{
 					errorLog.println(currentUrl + " - unable to find body content");
-					continue;
+				    continue;
 				}
 			}
 			
-			/* grab xml in text form of body, related links, and additional info elements */
+			/*** grab xml in text form of body, related links, and additional info elements ***/
 			if (bodyContentNode != null)
 			{
 				new PrettyXmlSerializer(props).writeToFile(
@@ -290,6 +285,7 @@ public class main {
 				Files.delete(Paths.get("C:/Users/Liferay/Desktop/ieee_test/add_info.xml"));
 			}
 
+			/*** condense all strings, format them to look nice, and spit them out to file ***/
 			{
 				masterPageStr = xmlTF + subnavStr + xmlBanner + bannerHeaderStr + xmlBannerMessage + bannerTextStr + xmlBodyContent + bodyContentStr + xmlRelated + relatedLinksStr + xmlAddInfo + addInfoStr + xmlClose;
 	
@@ -320,14 +316,25 @@ public class main {
 				}
 				
 				while ((tempString = tempReader.readLine()) != null)
-				{
-					tempString = tempString.replaceFirst("\t", "").replaceFirst("\t", "").replaceAll("</html>","").replaceAll("</body>", "").replaceAll("&#60;", "<").replaceAll("&#62;", ">");
-					tempWriter.println(tempString);
+				{					
+					tempString = StringEscapeUtils.unescapeHtml4(tempString.replaceFirst("\t", "").replaceFirst("\t", ""));
+					
+					if (tempString.contains("</root>"))
+					{
+						tempWriter.print(tempString);
+						break;
+					}
+					else
+					{
+						tempWriter.println(tempString);
+					}
 				}
 				
 				tempReader.close();
 				tempWriter.close();
 			}
+			
+			break;
 		}
 		/*
 		errorLog.close();
@@ -336,10 +343,10 @@ public class main {
 		formLog.close();
 		masterUrlFile.close();
 		*/
-
-		errorLog.close();
+		
 		formLog.close();
 		masterUrlFile.close();
 		omitElementsLog.close();
+		errorLog.close();
 	}
 }
