@@ -56,16 +56,16 @@ public class main {
 		omitElementsLog = null;
 		formLog = null;
 		
-		errorLog = new PrintWriter(new FileWriter("errorLogUrl", true));
+		errorLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/errorLogUrl.txt", true));
 		// blacklistLog = new PrintWriter(new FileWriter("blacklistLogUrl", true));
-		omitElementsLog = new PrintWriter(new FileWriter("omitElementsLogUrl", true));
+		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/omitElementsLogUrl.txt", true));
 		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/formLogUrl.txt", true));
 		// attentionLog....
 		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
 			CleanerProperties props = new CleanerProperties();
-			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, contentNode, textContentNode, relatedLinksNode, searchBoxNode, searchContentNode;
+			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, contentNode, textContentNode, relatedLinksNode, searchBoxNode, searchContentNode;
 			TagNode bodyContentNode;
 			String bodyContentStr, relatedLinksStr, addInfoStr, subnavStr, bannerHeaderStr, bannerTextStr, masterPageStr;
 			
@@ -73,6 +73,7 @@ public class main {
 			alignNode = null;
 			addInfoNode = null;
 			sideBoxNode = null;
+			sideBoxSectionsNode = null;
 			contentNode = null;
 			textContentNode = null;
 			relatedLinksNode = null;
@@ -131,54 +132,35 @@ public class main {
 			{
 				subnavStr = "false";
 			}
-			
-			Object[] relatedLinksList = root.evaluateXPath("//h4[text()='RELATED LINKS']");
-			Object[] relatedLinksList2 = root.evaluateXPath("//h4[text()='Related Links']");
-			if (relatedLinksList.length > 0)
-			{
-				relatedLinksNode = ((TagNode)relatedLinksList[0]).getParent();
-			}
-			else if (relatedLinksList2.length > 0)
-			{
-				relatedLinksNode = ((TagNode)relatedLinksList2[0]).getParent();
-			}
-			
-			Object[] addInfoList = root.evaluateXPath("//h4[text()='ADDITIONAL INFORMATION']");
-			Object[] addInfoList2 = root.evaluateXPath("//h4[text()='Additional Information']");
-			if (addInfoList.length > 0)
-			{
-				addInfoNode = ((TagNode)addInfoList[0]).getParent();
-			}
-			else if (addInfoList2.length > 0)
-			{
-				addInfoNode = ((TagNode)addInfoList2[0]).getParent();
-			}
-			
+						
 			Object[] alignList = root.evaluateXPath("//div[@class='alignleft']");
 			if (alignList.length > 0)
 			{
 				alignNode = (TagNode)alignList[0];
 			}
 			
-			Object[] sideBoxList = root.evaluateXPath("//div[@id='side-box']");
-			if (sideBoxList.length > 0)
-			{
-				sideBoxNode = (TagNode)sideBoxList[0];
-				sideBoxNode.getParent().removeChild(sideBoxNode);
-			}
-			
-			Object[] sideBoxSectionsList = root.evaluateXPath("//div[@class='side-box']//h4/text()");
+			Object[] sideBoxSectionsList = root.evaluateXPath("//div[@class='side-box']//h4");
 			if (sideBoxSectionsList.length > 0)
 			{
 				for (int i = 0; i< sideBoxSectionsList.length; i++)
 				{
-					String sideBoxSectionsStr = sideBoxSectionsList[i].toString();
-			    
-					if (!sideBoxSectionsStr.equalsIgnoreCase("related links") && !sideBoxSectionsStr.equalsIgnoreCase("additional information"))
+					sideBoxSectionsNode = (TagNode)sideBoxSectionsList[i];
+					String sideBoxSectionsStr = (sideBoxSectionsNode.getText()).toString();
+					if (sideBoxSectionsStr.equalsIgnoreCase("related links"))
+					{
+						relatedLinksNode = sideBoxSectionsNode.getParent();
+					}
+					else if (sideBoxSectionsStr.equalsIgnoreCase("additional information"))
+					{
+						addInfoNode = sideBoxSectionsNode.getParent();
+					}
+					else 
 					{
 						omitElementsLog.println(currentUrl + " - " + sideBoxSectionsStr);
 					}
 				}
+				sideBoxNode = sideBoxSectionsNode.getParent();
+				sideBoxNode.getParent().removeChild(sideBoxNode);
 			}
 			
 			Object[] searchBoxList = root.evaluateXPath("//div[@id='search-box']");
@@ -346,8 +328,6 @@ public class main {
 				tempReader.close();
 				tempWriter.close();
 			}
-			
-			break;
 		}
 		/*
 		errorLog.close();
