@@ -36,6 +36,7 @@ import org.htmlcleaner.TagNode;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class main {
@@ -45,8 +46,11 @@ public class main {
 		BufferedReader masterUrlFile = null;
 		BufferedReader blacklistFile = null;
 		ArrayList<String> blacklistUrls = null;
+		ArrayList<String> outputtedUrls = null;
 		
-		PrintWriter errorLog, omitElementsLog, formLog, attentionLog;
+		CleanerProperties props = null;
+		
+		PrintWriter errorLog, omitElementsLog, formLog, duplicatePageLog;
 		String currentUrl = null;
 		
 		String xmlTF = "<?xml version=\"1.0\"?><root available-locales=\"en_US\" default-locale=\"en_US\"><dynamic-element dataType=\"boolean\" indexType=\"keyword\" name=\"sideNav\" readOnly=\"false\" repeatable=\"false\" required=\"false\" showLabel=\"true\" type=\"checkbox\" width=\"\"><dynamic-content language-id=\"en_US\"><![CDATA[";
@@ -60,7 +64,7 @@ public class main {
 		errorLog = null;
 		omitElementsLog = null;
 		formLog = null;
-		attentionLog = null;
+		duplicatePageLog = null;
 
 		try
 		{
@@ -82,21 +86,32 @@ public class main {
 			System.exit(1);
 		}
 		
-		errorLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/errorLogUrl.txt", true));
-		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/omitElementsLogUrl.txt", true));
-		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/formLogUrl.txt", true));
+		errorLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/errorLog.txt", true));
+		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/omitElementsLog.txt", true));
+		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/formLog.txt", true));
+		duplicatePageLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/duplicatePageLog.txt", true));
 		
-		int urlIndex = 0;
+		outputtedUrls = new ArrayList<String>();
+		
+		// set some properties to non-default values
+		props = new CleanerProperties();
+		
+		props.setAdvancedXmlEscape(true);
+		props.setTransResCharsToNCR(true);
+		props.setRecognizeUnicodeChars(false);
+		props.setIgnoreQuestAndExclam(false);
+		props.setOmitXmlDeclaration(true);
 		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
-			++urlIndex;
-			
-			CleanerProperties props = new CleanerProperties();
+			TagNode root;
 			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
 			TagNode bodyContentNode;
 			String bodyContentStr, relatedLinksStr, addInfoStr, subnavStr, bannerHeaderStr, bannerTextStr, masterPageStr;
+			String strDelimiter, outputFileName;
+			String[] filenameSplitArray;
 			
+			root = null;
 			subnavNode = null;
 			alignNode = null;
 			addInfoNode = null;
@@ -113,18 +128,63 @@ public class main {
 			bannerHeaderStr = "";
 			bannerTextStr = "";
 			masterPageStr = "";
+
+			outputFileName = "";
 			
-			// set some properties to non-default values
-			props.setAdvancedXmlEscape(true);
-			props.setTransResCharsToNCR(true);
-			props.setRecognizeUnicodeChars(false);
-			props.setIgnoreQuestAndExclam(false);
-			props.setOmitXmlDeclaration(true);
+			
+			// format output file name
+			strDelimiter = "/";
+			filenameSplitArray = currentUrl.replaceAll("http://standards.ieee.org/", "").split(strDelimiter);
+			
+			// if url had "/" at its end (e.g. http://google.com/ ), the string array will store an extra element at its tail which actually has nothing in it. so rid this. 
+			while (filenameSplitArray[filenameSplitArray.length - 1].equals(""))
+			{
+				filenameSplitArray = Arrays.copyOfRange(filenameSplitArray, 0, filenameSplitArray.length - 1);
+			}
+			
+			if (filenameSplitArray[filenameSplitArray.length - 1].equals("index.html"))
+			{
+				filenameSplitArray = Arrays.copyOfRange(filenameSplitArray, 0, filenameSplitArray.length - 1);
+				filenameSplitArray[filenameSplitArray.length - 1] += ".xml";
+			}
+			else
+			{	
+				filenameSplitArray[filenameSplitArray.length - 1] = filenameSplitArray[filenameSplitArray.length - 1].replaceAll(".html", ".xml");
+			}
+			
+			for (int i = 0; i < filenameSplitArray.length; ++i)
+			{
+				// not at end of list
+				if (i < filenameSplitArray.length - 1)
+				{
+					outputFileName += ((filenameSplitArray[i]) + " - "); // this dash is a special dash. only this dash works in filenames. copy and paste if using it (don't type it in).
+				}
+				else // at end of list
+				{
+					outputFileName += filenameSplitArray[i];
+				}
+			}
+			
+			// check if file already exists, in which case it's most likely due to index.html page existing as a duplicate
+			if (outputtedUrls.contains(outputFileName))
+			{
+				duplicatePageLog.println(outputFileName + " generated from " + currentUrl);
+				continue;
+			}
 	
-			// do parsing
-			TagNode root = new HtmlCleaner(props).clean(
-			    new URL(currentUrl)
-			);
+			//parse url
+			try
+			{
+				root = new HtmlCleaner(props).clean(
+				    new URL(currentUrl)
+				);
+			}
+			catch (Exception e)
+			{
+				// if can't parse url for some reason (e.g. url doesn't exist).. move on to the next url
+				System.out.println(currentUrl + " - " + e.getMessage());
+				continue;
+			}
 			
 			Object[] formList = root.evaluateXPath("//div[@id='text-content']/form");
 			Object[] formList2 = root.evaluateXPath("//div[@class='alignleft']/form");
@@ -296,15 +356,7 @@ public class main {
 				
 				BufferedReader tempReader = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/masterPageCleaned.xml"));
 				
-				String strDelimiter = "/";
-				String[] filenameSplitArray = currentUrl.split(strDelimiter);
-				
-				if (filenameSplitArray[filenameSplitArray.length - 1].equals("index.html"))
-				{
-					
-				}
-				
-				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee-test/", true));
+				PrintWriter tempWriter = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/xml_files/" + outputFileName, true));
 				tempWriter.println("<?xml version=\"1.0\"?>");
 				tempWriter.println("");
 				
@@ -338,19 +390,15 @@ public class main {
 				tempReader.close();
 				tempWriter.close();
 				Files.delete(Paths.get("C:/Users/Liferay/Desktop/masterPageCleaned.xml"));
+				
+				outputtedUrls.add(outputFileName);
 			}
 		}
-		/*
-		errorLog.close();
-		blacklistLog.close();
-		omitElementsLog.close();
-		formLog.close();
-		masterUrlFile.close();
-		*/
 		
-		formLog.close();
 		masterUrlFile.close();
-		omitElementsLog.close();
 		errorLog.close();
+		omitElementsLog.close();
+		formLog.close();
+		duplicatePageLog.close();
 	}
 }
