@@ -187,12 +187,6 @@ public class main {
 				sideBoxNode.getParent().removeChild(sideBoxNode);
 			}
 			
-			Object[] searchBoxList = root.evaluateXPath("//div[@id='search-box']");
-			if (searchBoxList.length > 0)
-			{
-				searchBoxNode = (TagNode)searchBoxList[0];
-			}
-			
 			Object[] textContentList = root.evaluateXPath("//div[@id='text-content']");
 			if (textContentList.length > 0)
 			{
