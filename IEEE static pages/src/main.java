@@ -324,7 +324,11 @@ public class main {
 			}
 			
 			/*** page layout possibilities logic ***/
-			if (alignNode != null)
+			if (contentTypeSimpleNode != null)
+			{
+				bodyContentNode = contentTypeSimpleNode;
+			}
+			else if (alignNode != null)
 			{
 				if (textContentNode != null)
 				{
@@ -341,18 +345,13 @@ public class main {
 				{
 					bodyContentNode = textContentNode;
 				}
-				else if (contentTypeSimpleNode != null)
+				else
 				{
-					bodyContentNode = contentTypeSimpleNode;
+					errorLog.println(currentUrl + " - unable to find body content");
+				    continue;
 				}
 			}
-			
-			if (bodyContentNode == null)
-			{
-				errorLog.println(currentUrl + " - unable to find body content");
-			    continue;
-			}
-			
+
 			/*** grab xml in text form of body, related links, and additional info elements ***/
 			if (bodyContentNode != null)
 			{
