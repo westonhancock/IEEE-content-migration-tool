@@ -42,6 +42,21 @@ import java.util.Scanner;
 
 public class main {
 
+	public static String[] splitUrlStringNeatly(String tempString)
+	{
+		String[] returnString = null;
+		
+		returnString = tempString.replaceAll("http://standards.ieee.org/", "").split("/");
+		
+		// if url has "/" at its end (e.g. http://google.com/ ), the string array will store an extra element at its tail which actually has nothing in it. so rid this. 
+		while (returnString[returnString.length - 1].equals(""))
+		{
+			returnString = Arrays.copyOfRange(returnString, 0, returnString.length - 1);
+		}
+		
+		return returnString;
+	}
+	
 	public static void main(String[] args) throws Exception {
 		
 		BufferedReader masterUrlFile = null;
@@ -146,34 +161,70 @@ public class main {
 
 			outputFileName = "";
 			
+			// check if url is blank
+			if (currentUrl.equals(""))
+			{
+				continue;
+			}
+			
 			/*** check currentUrl against blacklist ***/
-			currentUrlSplitArray = currentUrl.replaceAll("http://standards.ieee.org/", "").split("/");
+			for (String tempString : blacklistUrls)
+			{
+				if (currentUrl.contains(tempString))
+				{
+					blacklisted = true;
+				}
+			}
+
+			if (blacklisted == true)
+			{
+				blacklistLog.println(currentUrl);
+				continue;
+			}
+			
+			/*
+			currentUrlSplitArray = main.splitUrlStringNeatly(currentUrl);
 			
 			for (String tempString : blacklistUrls)
 			{
-				String[] tempStringSplitArray = tempString.replaceAll("http://standards.ieee.org/", "").split("/");
+				String[] tempStringSplitArray = main.splitUrlStringNeatly(tempString);
+				boolean blacklistIsFolder; // blacklist url is a folder or file
 				
-				if (tempStringSplitArray.length > currentUrlSplitArray.length)
-				{
-					// currentUrl is above the blacklist url (directory-wise) so currentUrl is not blacklisted
-					continue;
-				}
+				blacklistIsFolder = (tempString.charAt(tempString.length() - 1) == '/') ? true : false;
 				
-				for (int i = 0; i < tempStringSplitArray.length; ++i)
+				if (blacklistIsFolder)
 				{
-					if ( ! tempStringSplitArray[i].equals(currentUrlSplitArray[i]))
+					if (tempStringSplitArray.length > currentUrlSplitArray.length)
 					{
-						// currentUrl didn't match blacklist url (starting at the base, directory-wise) so currentUrl is not blacklisted
-						break;
+						// currentUrl is above the blacklist url (directory-wise) so currentUrl is not blacklisted
+						continue;
 					}
-					else
+					
+					for (int i = 0; i < tempStringSplitArray.length; ++i)
 					{
-						// at very end of blacklist url string split array
-						if (i == (tempStringSplitArray.length - 1))
+						if ( ! tempStringSplitArray[i].equals(currentUrlSplitArray[i]))
 						{
-							// every word in blacklist url matched currentUrl so currentUrl is blacklisted
-							blacklisted = true;
+							// currentUrl didn't match blacklist url (starting at the base, directory-wise) so currentUrl is not blacklisted
+							break;
 						}
+						else
+						{
+							// at very end of blacklist url string split array
+							if (i == (tempStringSplitArray.length - 1))
+							{
+								// every word in blacklist url matched currentUrl so currentUrl is blacklisted
+								blacklisted = true;
+								break;
+							}
+						}
+					}
+				}
+				else // blacklist url is a file
+				{
+					if (tempString.equals(currentUrl))
+					{
+						blacklisted = true;
+						break;
 					}
 				}
 				
@@ -182,19 +233,10 @@ public class main {
 					break;
 				}
 			}
-			
-			if (blacklisted == true)
-			{
-				blacklistLog.println(currentUrl);
-				continue;
-			}
+			*/
 			
 			/*** format output file name ***/
-			// if url had "/" at its end (e.g. http://google.com/ ), the string array will store an extra element at its tail which actually has nothing in it. so rid this. 
-			while (currentUrlSplitArray[currentUrlSplitArray.length - 1].equals(""))
-			{
-				currentUrlSplitArray = Arrays.copyOfRange(currentUrlSplitArray, 0, currentUrlSplitArray.length - 1);
-			}
+			currentUrlSplitArray = main.splitUrlStringNeatly(currentUrl);
 			
 			if (currentUrlSplitArray[currentUrlSplitArray.length - 1].equals("index.html"))
 			{
@@ -225,7 +267,7 @@ public class main {
 			// check if file already exists.. if it does exist, it's most likely due to index.html page existing as a duplicate
 			if (outputtedUrls.contains(outputFileName))
 			{
-				duplicatePageLog.println(outputFileName + " generated from " + currentUrl);
+				duplicatePageLog.println(outputFileName + " - already generated from: " + currentUrl);
 				continue;
 			}
 	
@@ -298,10 +340,14 @@ public class main {
 					if (sideBoxSectionsStr.equalsIgnoreCase("related links"))
 					{
 						relatedLinksNode = sideBoxSectionsNode.getParent();
+						sideBoxSectionsNode.getParent().removeChild(sideBoxSectionsNode);
 					}
 					else if (sideBoxSectionsStr.equalsIgnoreCase("additional information"))
 					{
 						addInfoNode = sideBoxSectionsNode.getParent();
+						sideBoxSectionsNode.getParent().removeChild(sideBoxSectionsNode);
+						
+						omitElementsLog.println("additional info.. " + currentUrl);
 					}
 					else 
 					{
