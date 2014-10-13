@@ -340,10 +340,14 @@ public class main {
 					if (sideBoxSectionsStr.equalsIgnoreCase("related links"))
 					{
 						relatedLinksNode = sideBoxSectionsNode.getParent();
+						sideBoxSectionsNode.getParent().removeChild(sideBoxSectionsNode);
 					}
 					else if (sideBoxSectionsStr.equalsIgnoreCase("additional information"))
 					{
 						addInfoNode = sideBoxSectionsNode.getParent();
+						sideBoxSectionsNode.getParent().removeChild(sideBoxSectionsNode);
+						
+						omitElementsLog.println("additional info.. " + currentUrl);
 					}
 					else 
 					{
