@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
@@ -44,13 +45,12 @@ public class main {
 	public static void main(String[] args) throws Exception {
 		
 		BufferedReader masterUrlFile = null;
-		BufferedReader blacklistFile = null;
-		ArrayList<String> blacklistUrls = null;
+		String[] blacklistUrls = null;
 		ArrayList<String> outputtedUrls = null;
 		
 		CleanerProperties props = null;
 		
-		PrintWriter errorLog, omitElementsLog, formLog, duplicatePageLog;
+		PrintWriter errorLog, omitElementsLog, formLog, duplicatePageLog, blacklistLog;
 		String currentUrl = null;
 		
 		String xmlTF = "<?xml version=\"1.0\"?><root available-locales=\"en_US\" default-locale=\"en_US\"><dynamic-element dataType=\"boolean\" indexType=\"keyword\" name=\"sideNav\" readOnly=\"false\" repeatable=\"false\" required=\"false\" showLabel=\"true\" type=\"checkbox\" width=\"\"><dynamic-content language-id=\"en_US\"><![CDATA[";
@@ -65,20 +65,27 @@ public class main {
 		omitElementsLog = null;
 		formLog = null;
 		duplicatePageLog = null;
+		blacklistLog = null;
 
 		try
 		{
 			// open master url list file
 			masterUrlFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/masterUrlList.txt"));
 			// open blacklist list file
-			blacklistFile = new BufferedReader(new FileReader("C:/Users/Liferay/Desktop/ieee_test/blacklist.txt"));
+			File tempFile = new File("C:/Users/Liferay/Desktop/ieee_test/blacklist.txt");
 			
-			String tempString = null;
-			
-			while ((tempString = blacklistFile.readLine()) != null)
-			{
-				blacklistUrls.add(tempString);
-			}
+		    FileInputStream tempInputStream = new FileInputStream(tempFile);
+		    byte[] tempData = new byte[(int)tempFile.length()];
+		    tempInputStream.read(tempData);
+		    tempInputStream.close();
+		    
+		    blacklistUrls = (new String(tempData, "UTF-8")).split(",");
+		    
+		    // rid any leading or trailing whitespace in urls
+		    for (int i = 0; i < blacklistUrls.length; ++i)
+		    {
+		    	blacklistUrls[i] = blacklistUrls[i].trim();
+		    }
 		}
 		catch (Exception e)
 		{
@@ -90,6 +97,7 @@ public class main {
 		omitElementsLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/omitElementsLog.txt", true));
 		formLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/formLog.txt", true));
 		duplicatePageLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/duplicatePageLog.txt", true));
+		blacklistLog = new PrintWriter(new FileWriter("C:/Users/Liferay/Desktop/ieee_test/logs/blacklistLog.txt", true));
 		
 		outputtedUrls = new ArrayList<String>();
 		
@@ -102,23 +110,25 @@ public class main {
 		props.setIgnoreQuestAndExclam(false);
 		props.setOmitXmlDeclaration(true);
 		
-		int index = 0;
+		int urlIndex = 0;
 		
 		while ((currentUrl = masterUrlFile.readLine()) != null)
 		{
-			++index;
-			System.out.println(index);
+			++urlIndex;
+			System.out.println(urlIndex);
 			
 			TagNode root;
-			TagNode subnavNode, alignNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
+			TagNode subnavNode, alignNode, contentTypeSimpleNode, addInfoNode, sideBoxNode, sideBoxSectionsNode, textContentNode, relatedLinksNode;
 			TagNode bodyContentNode;
 			String bodyContentStr, relatedLinksStr, addInfoStr, subnavStr, bannerHeaderStr, bannerTextStr, masterPageStr;
-			String strDelimiter, outputFileName;
-			String[] filenameSplitArray;
+			String outputFileName;
+			String[] currentUrlSplitArray;
+			boolean blacklisted = false;
 			
 			root = null;
 			subnavNode = null;
 			alignNode = null;
+			contentTypeSimpleNode = null;
 			addInfoNode = null;
 			sideBoxNode = null;
 			sideBoxSectionsNode = null;
@@ -136,51 +146,90 @@ public class main {
 
 			outputFileName = "";
 			
+			/*** check currentUrl against blacklist ***/
+			currentUrlSplitArray = currentUrl.replaceAll("http://standards.ieee.org/", "").split("/");
 			
-			// format output file name
-			strDelimiter = "/";
-			filenameSplitArray = currentUrl.replaceAll("http://standards.ieee.org/", "").split(strDelimiter);
+			for (String tempString : blacklistUrls)
+			{
+				String[] tempStringSplitArray = tempString.replaceAll("http://standards.ieee.org/", "").split("/");
+				
+				if (tempStringSplitArray.length > currentUrlSplitArray.length)
+				{
+					// currentUrl is above the blacklist url (directory-wise) so currentUrl is not blacklisted
+					continue;
+				}
+				
+				for (int i = 0; i < tempStringSplitArray.length; ++i)
+				{
+					if ( ! tempStringSplitArray[i].equals(currentUrlSplitArray[i]))
+					{
+						// currentUrl didn't match blacklist url (starting at the base, directory-wise) so currentUrl is not blacklisted
+						break;
+					}
+					else
+					{
+						// at very end of blacklist url string split array
+						if (i == (tempStringSplitArray.length - 1))
+						{
+							// every word in blacklist url matched currentUrl so currentUrl is blacklisted
+							blacklisted = true;
+						}
+					}
+				}
+				
+				if (blacklisted == true)
+				{
+					break;
+				}
+			}
 			
+			if (blacklisted == true)
+			{
+				blacklistLog.println(currentUrl);
+				continue;
+			}
+			
+			/*** format output file name ***/
 			// if url had "/" at its end (e.g. http://google.com/ ), the string array will store an extra element at its tail which actually has nothing in it. so rid this. 
-			while (filenameSplitArray[filenameSplitArray.length - 1].equals(""))
+			while (currentUrlSplitArray[currentUrlSplitArray.length - 1].equals(""))
 			{
-				filenameSplitArray = Arrays.copyOfRange(filenameSplitArray, 0, filenameSplitArray.length - 1);
+				currentUrlSplitArray = Arrays.copyOfRange(currentUrlSplitArray, 0, currentUrlSplitArray.length - 1);
 			}
 			
-			if (filenameSplitArray[filenameSplitArray.length - 1].equals("index.html"))
+			if (currentUrlSplitArray[currentUrlSplitArray.length - 1].equals("index.html"))
 			{
-				filenameSplitArray = Arrays.copyOfRange(filenameSplitArray, 0, filenameSplitArray.length - 1);
-				filenameSplitArray[filenameSplitArray.length - 1] += ".xml";
+				currentUrlSplitArray = Arrays.copyOfRange(currentUrlSplitArray, 0, currentUrlSplitArray.length - 1);
+				currentUrlSplitArray[currentUrlSplitArray.length - 1] += ".xml";
 			}
 			
-			filenameSplitArray[filenameSplitArray.length - 1] = filenameSplitArray[filenameSplitArray.length - 1].replaceAll(".html", ".xml");
+			currentUrlSplitArray[currentUrlSplitArray.length - 1] = currentUrlSplitArray[currentUrlSplitArray.length - 1].replaceAll(".html", ".xml");
 			
-			if (( ! filenameSplitArray[filenameSplitArray.length -1].contains(".html")) && ( ! filenameSplitArray[filenameSplitArray.length -1].contains(".xml")))
+			if (( ! currentUrlSplitArray[currentUrlSplitArray.length -1].contains(".html")) && ( ! currentUrlSplitArray[currentUrlSplitArray.length -1].contains(".xml")))
 			{
-				filenameSplitArray[filenameSplitArray.length -1] += ".xml";
+				currentUrlSplitArray[currentUrlSplitArray.length -1] += ".xml";
 			}
 			
-			for (int i = 0; i < filenameSplitArray.length; ++i)
+			for (int i = 0; i < currentUrlSplitArray.length; ++i)
 			{
 				// not at end of list
-				if (i < filenameSplitArray.length - 1)
+				if (i < currentUrlSplitArray.length - 1)
 				{
-					outputFileName += ((filenameSplitArray[i]) + "-"); // this dash is a special dash. only this dash works in filenames. copy and paste if using it (don't type it in).
+					outputFileName += ((currentUrlSplitArray[i]) + "-"); // this dash is a special dash. only this dash works in filenames. copy and paste if using it (don't type it in).
 				}
 				else // at end of list
 				{
-					outputFileName += filenameSplitArray[i];
+					outputFileName += currentUrlSplitArray[i];
 				}
 			}
 
-			// check if file already exists, in which case it's most likely due to index.html page existing as a duplicate
+			// check if file already exists.. if it does exist, it's most likely due to index.html page existing as a duplicate
 			if (outputtedUrls.contains(outputFileName))
 			{
 				duplicatePageLog.println(outputFileName + " generated from " + currentUrl);
 				continue;
 			}
 	
-			//parse url
+			/*** parse url ***/
 			try
 			{
 				root = new HtmlCleaner(props).clean(
@@ -190,16 +239,22 @@ public class main {
 			catch (Exception e)
 			{
 				// if can't parse url for some reason (e.g. url doesn't exist).. move on to the next url
-				System.out.println(currentUrl + " - " + e.getMessage());
+				errorLog.println(currentUrl + " - " + e.getMessage());
 				continue;
 			}
 			
+			/*** grab necessary html nodes ***/
 			Object[] formList = root.evaluateXPath("//div[@id='text-content']/form");
 			Object[] formList2 = root.evaluateXPath("//div[@class='alignleft']/form");
 			if (formList.length > 0 || formList2.length > 0 )
 			{
 				formLog.println(currentUrl + " - form");
-				continue;
+			}
+			
+			Object[] contentTypeSimpleList = root.evaluateXPath("//div[@id='content-type-simple']");
+			if (contentTypeSimpleList.length > 0 || contentTypeSimpleList.length > 0 )
+			{
+				contentTypeSimpleNode = (TagNode)contentTypeSimpleList[0];
 			}
 
 			Object[] bannerHeaderList = root.evaluateXPath("//div[@id='title-banner']/h1[1]/text()");
@@ -207,7 +262,7 @@ public class main {
 			{
 				bannerHeaderStr = bannerHeaderList[0].toString();
 			}
-			
+
 			Object[] bannerTextList = root.evaluateXPath("//div[@id='title-banner']/p[1]/text()");
 			if (bannerTextList.length > 0)
 			{
@@ -268,7 +323,12 @@ public class main {
 				textContentNode = (TagNode)textContentList[0];
 			}
 			
-			if (alignNode != null)
+			/*** page layout possibilities logic ***/
+			if (contentTypeSimpleNode != null)
+			{
+				bodyContentNode = contentTypeSimpleNode;
+			}
+			else if (alignNode != null)
 			{
 				if (textContentNode != null)
 				{
@@ -291,7 +351,7 @@ public class main {
 				    continue;
 				}
 			}
-			
+
 			/*** grab xml in text form of body, related links, and additional info elements ***/
 			if (bodyContentNode != null)
 			{
@@ -408,5 +468,6 @@ public class main {
 		omitElementsLog.close();
 		formLog.close();
 		duplicatePageLog.close();
+		blacklistLog.close();
 	}
 }
