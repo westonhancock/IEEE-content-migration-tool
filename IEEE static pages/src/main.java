@@ -23,7 +23,8 @@ public class main {
 	{
 		String[] returnString = null;
 		
-		returnString = tempString.replaceAll("http://standards.ieee.org/", "").split("/");
+		tempString = (tempString.replaceAll("http://standards.ieee.org/", "")).replaceAll("//", "/");
+		returnString = tempString.split("/");
 		
 		// if url has "/" at its end (e.g. http://google.com/ ), the string array will store an extra element at its tail which actually has nothing in it. so rid this. 
 		while (returnString[returnString.length - 1].equals(""))
@@ -101,6 +102,8 @@ public class main {
 		props.setRecognizeUnicodeChars(false);
 		props.setIgnoreQuestAndExclam(false);
 		props.setOmitXmlDeclaration(true);
+		// props.setTranslateSpecialEntities(true);
+		props.setTransSpecialEntitiesToNCR(true);
 		
 		int urlIndex = 0;
 		
@@ -323,12 +326,10 @@ public class main {
 					{
 						addInfoNode = sideBoxSectionsNode.getParent();
 						sideBoxSectionsNode.getParent().removeChild(sideBoxSectionsNode);
-						
-						omitElementsLog.println("additional info.. " + currentUrl);
 					}
-					else 
+					else
 					{
-						omitElementsLog.println(currentUrl + " - " + sideBoxSectionsStr);
+						omitElementsLog.println(StringEscapeUtils.unescapeHtml4(currentUrl.replaceAll("http://standards.ieee.org", "")) + " - " + sideBoxSectionsStr);
 					}
 				}
 			}
@@ -339,7 +340,7 @@ public class main {
 				sideBoxNode = (TagNode)sideBoxList[0]; 
 			    sideBoxNode.getParent().removeChild(sideBoxNode);
 			}
-			
+
 			Object[] textContentList = root.evaluateXPath("//div[@id='text-content']");
 			if (textContentList.length > 0)
 			{
