@@ -53,7 +53,7 @@ public class main {
 		String xmlAddInfo = "]]></dynamic-content></dynamic-element><dynamic-element dataType=\"html\" fieldNamespace=\"ddm\" indexType=\"keyword\" name=\"additionalInformation\" readOnly=\"false\" repeatable=\"false\" required=\"false\" showLabel=\"true\" type=\"ddm-text-html\" width=\"large\"><dynamic-content language-id=\"en_US\"><![CDATA[";
 		String xmlRelated = "]]></dynamic-content></dynamic-element><dynamic-element dataType=\"html\" fieldNamespace=\"ddm\" indexType=\"keyword\" name=\"relatedLinks\" readOnly=\"false\" repeatable=\"false\" required=\"false\" showLabel=\"true\" type=\"ddm-text-html\" width=\"large\"><dynamic-content language-id=\"en_US\"><![CDATA[";
 		String xmlClose = "]]></dynamic-content></dynamic-element></root>";
-		
+	
 		errorLog = null;
 		omitElementsLog = null;
 		formLog = null;
@@ -96,6 +96,7 @@ public class main {
 		
 		// set some properties to non-default values
 		props = new CleanerProperties();
+		
 		
 		props.setAdvancedXmlEscape(true);
 		props.setTransResCharsToNCR(true);
@@ -218,6 +219,15 @@ public class main {
 			/*** format output file name ***/
 			currentUrlSplitArray = main.splitUrlStringNeatly(currentUrl);
 			
+			// if there is any "." in file name (except in the file extension), then change it to a hyphen, "-"
+			{						
+				for (int i = 0; i < currentUrlSplitArray.length; ++i)
+				{
+					// i couldn't figure out the regex thing inside "replaceAll" method.. so this conversion is a bit unclever and clunky.
+					currentUrlSplitArray[i] = currentUrlSplitArray[i].replaceAll("\\.", "-").replaceAll("index-html", "index.html");
+				}
+			}
+			
 			if (currentUrlSplitArray[currentUrlSplitArray.length - 1].equals("index.html"))
 			{
 				currentUrlSplitArray = Arrays.copyOfRange(currentUrlSplitArray, 0, currentUrlSplitArray.length - 1);
@@ -231,7 +241,7 @@ public class main {
 				currentUrlSplitArray[currentUrlSplitArray.length -1] += ".xml";
 			}
 			
-			for (int i = 0; i < currentUrlSplitArray.length; ++i)
+			for (int i = 0; i < currentUrlSplitArray.length; ++i) 
 			{
 				// not at end of list
 				if (i < currentUrlSplitArray.length - 1)
@@ -350,7 +360,14 @@ public class main {
 			/*** page layout possibilities logic ***/
 			if (contentTypeSimpleNode != null)
 			{
-				bodyContentNode = contentTypeSimpleNode;
+				if (textContentNode != null)
+				{
+					bodyContentNode = textContentNode;
+				}
+				else
+				{
+					bodyContentNode = contentTypeSimpleNode;
+				}
 			}
 			else if (alignNode != null)
 			{
@@ -466,7 +483,8 @@ public class main {
 				
 				while ((tempString = tempReader.readLine()) != null)
 				{					
-					tempString = StringEscapeUtils.unescapeHtml4(tempString.replaceFirst("\t", "").replaceFirst("\t", ""));
+					// tempString = StringEscapeUtils.unescapeHtml4(tempString.replaceFirst("\t", "").replaceFirst("\t", "")).replaceAll("“", "\"").replaceAll("”", "\"").replaceAll("–", "-").replaceAll("‘", "'").replaceAll("’", "'").replaceAll("—","-").replaceAll(" ", " ");
+					tempString = (tempString.replaceFirst("\t", "").replaceFirst("\t", "")).replaceAll("&#60;", "<").replaceAll("&#62;", ">");
 					
 					if (tempString.contains("</root>"))
 					{
